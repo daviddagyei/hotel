@@ -11,9 +11,9 @@ class ReservationStatusEnum(enum.Enum):
 
 class Reservation(BaseORMModel, Base):
     __tablename__ = "reservations"
-    property_id = Column(Integer, ForeignKey("properties.id"), index=True, nullable=False)
-    guest_id = Column(Integer, ForeignKey("guests.id"), nullable=False)
-    room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)  # Assigned at booking or check-in
+    property_id = Column(Integer, nullable=False)  # Removed ForeignKey
+    guest_id = Column(Integer, nullable=False)     # Removed ForeignKey
+    room_id = Column(Integer, nullable=True)       # Removed ForeignKey
     check_in = Column(DateTime, nullable=False)
     check_out = Column(DateTime, nullable=False)
     status = Column(Enum(ReservationStatusEnum), default=ReservationStatusEnum.BOOKED, nullable=False)

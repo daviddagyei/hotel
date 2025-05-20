@@ -1,33 +1,35 @@
-from backend.core.schema import BaseSchema
+from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
-class PropertyCreate(BaseSchema):
+class PropertyCreate(BaseModel):
     name: str
     location: Optional[str] = None
 
-class PropertyRead(BaseSchema):
+class PropertyRead(BaseModel):
     name: str
     location: Optional[str] = None
 
-class RoomTypeCreate(BaseSchema):
+class RoomTypeCreate(BaseModel):
     property_id: int
     name: str
     base_rate: float
 
-class RoomTypeRead(BaseSchema):
+class RoomTypeRead(BaseModel):
     property_id: int
     name: str
     base_rate: float
 
-class RoomCreate(BaseSchema):
+class RoomCreate(BaseModel):
     property_id: int
     number: str
     type_id: int
+    status: str = "AVAILABLE"
     floor: Optional[str] = None
     amenities: Optional[str] = None
 
-class RoomRead(BaseSchema):
+class RoomRead(BaseModel):
+    id: int
     property_id: int
     number: str
     type_id: int
@@ -35,7 +37,14 @@ class RoomRead(BaseSchema):
     floor: Optional[str] = None
     amenities: Optional[str] = None
 
-class RatePlanCreate(BaseSchema):
+class RoomUpdate(BaseModel):
+    number: Optional[str] = None
+    type_id: Optional[int] = None
+    status: Optional[str] = None
+    floor: Optional[str] = None
+    amenities: Optional[str] = None
+
+class RatePlanCreate(BaseModel):
     property_id: int
     room_type_id: int
     name: str
@@ -43,7 +52,7 @@ class RatePlanCreate(BaseSchema):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
 
-class RatePlanRead(BaseSchema):
+class RatePlanRead(BaseModel):
     property_id: int
     room_type_id: int
     name: str
@@ -51,7 +60,7 @@ class RatePlanRead(BaseSchema):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
 
-class RoomStatusLogRead(BaseSchema):
+class RoomStatusLogRead(BaseModel):
     room_id: int
     old_status: str
     new_status: str

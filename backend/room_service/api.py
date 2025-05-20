@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
 from .config import SessionLocal
 from .schemas import (
-    PropertyCreate, PropertyRead, RoomTypeCreate, RoomTypeRead, RoomCreate, RoomRead, RatePlanCreate, RatePlanRead, RoomStatusLogRead
+    PropertyCreate, PropertyRead, RoomTypeCreate, RoomTypeRead, RoomCreate, RoomRead, RatePlanCreate, RatePlanRead, RoomStatusLogRead, RoomUpdate
 )
 from .service import (
     PropertyService, RoomService, RoomTypeService, RatePlanService, RoomStatusLogService
@@ -42,7 +42,29 @@ def list_rooms(db: Session = Depends(get_db)):
 
 @router.post("/rooms", response_model=RoomRead)
 def create_room(data: RoomCreate, db: Session = Depends(get_db)):
-    return RoomService(db).repo.create(data)
+    try:
+        return RoomService(db).repo.create(data)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+@router.patch("/rooms/{room_id}", response_model=RoomRead)
+def update_room(room_id: int, update: RoomUpdate = Body(...), db: Session = Depends(get_db)):
+    room = RoomService(db).repo.get(room_id)
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    try:
+        updated = RoomService(db).repo.update(room_id, update)
+        return updated
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+@router.delete("/rooms/{room_id}", response_model=None)
+def delete_room(room_id: int, db: Session = Depends(get_db)):
+    room = RoomService(db).repo.get(room_id)
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    RoomService(db).repo.delete(room_id)
+    return {"detail": "Room deleted"}
 
 # RatePlan endpoints
 @router.get("/rate-plans", response_model=list[RatePlanRead])

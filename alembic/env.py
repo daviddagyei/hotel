@@ -8,6 +8,7 @@ from backend.room_service.models import Base
 from backend.auth_service.models.staff import Staff
 from backend.auth_service.models.role import Role
 from backend.auth_service.models.staff_role import StaffRole
+from backend.reservation_service.models import Reservation
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

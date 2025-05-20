@@ -17,6 +17,18 @@ class ReservationRepository:
             query = query.filter(Reservation.guest_id == guest_id)
         return query.all()
 
+    def list_reservations(self, property_id: int = None, guest_id: int = None, start_date: str = None, end_date: str = None) -> List[Reservation]:
+        query = self.db.query(Reservation)
+        if property_id:
+            query = query.filter(Reservation.property_id == property_id)
+        if guest_id:
+            query = query.filter(Reservation.guest_id == guest_id)
+        if start_date:
+            query = query.filter(Reservation.check_in >= start_date)
+        if end_date:
+            query = query.filter(Reservation.check_out <= end_date)
+        return query.all()
+
     def create(self, obj_in) -> Reservation:
         db_obj = Reservation(**obj_in.dict())
         self.db.add(db_obj)

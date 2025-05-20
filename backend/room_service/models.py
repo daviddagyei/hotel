@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Enum, Float, DateTime
+from sqlalchemy import Column, Integer, String, ForeignKey, Enum, Float, DateTime, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from backend.core.base import Base, BaseORMModel
@@ -18,6 +18,9 @@ class RoomType(BaseORMModel, Base):
 
 class Room(BaseORMModel, Base):
     __tablename__ = "rooms"
+    __table_args__ = (
+        UniqueConstraint('property_id', 'number', name='uix_property_room_number'),
+    )
     property_id = Column(Integer, ForeignKey("properties.id"), index=True)
     number = Column(String, nullable=False)
     type_id = Column(Integer, ForeignKey("room_types.id"))

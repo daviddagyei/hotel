@@ -1,7 +1,7 @@
 import httpx
 from typing import Optional
 
-ROOM_SERVICE_URL = "http://localhost:8001/api/v1/rooms"
+ROOM_SERVICE_URL = "http://localhost:8001/api/v1/room-service/rooms"
 RESERVATION_SERVICE_URL = "http://localhost:8002/api/v1/reservations"
 HOUSEKEEPING_SERVICE_URL = "http://localhost:8003/api/v1/tasks"
 

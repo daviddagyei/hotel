@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Enum, ForeignKey, DateTime, func
 from sqlalchemy.orm import relationship
 from backend.core.base import Base, BaseORMModel
 import enum
+from backend.housekeeping_service.models.stubs import Property, Room, Staff
 
 class TaskTypeEnum(str, enum.Enum):
     HOUSEKEEPING = "HOUSEKEEPING"

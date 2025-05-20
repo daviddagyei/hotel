@@ -54,7 +54,20 @@ class RoomRepository(BaseRepository):
         return query.all()
 
     def create(self, obj_in) -> Room:
-        db_obj = Room(**obj_in.dict())
+        # Accept dict or object with .dict()
+        if hasattr(obj_in, 'dict'):
+            data = obj_in.dict()
+        else:
+            data = dict(obj_in)
+        # Check for required fields
+        required = ['property_id', 'number', 'type_id', 'status', 'floor']
+        for field in required:
+            if field not in data or data[field] in (None, ""):
+                raise ValueError(f"Missing or empty required field: {field}")
+        existing = self.db.query(Room).filter(Room.property_id == data['property_id'], Room.number == data['number']).first()
+        if existing:
+            raise ValueError(f"Room number '{data['number']}' already exists for this property.")
+        db_obj = Room(**data)
         self.db.add(db_obj)
         self.db.commit()
         self.db.refresh(db_obj)
@@ -64,7 +77,17 @@ class RoomRepository(BaseRepository):
         db_obj = self.get(id)
         if db_obj is None:
             raise AttributeError(f"Object with id {id} does not exist.")
-        for field, value in obj_in.dict(exclude_unset=True).items():
+        if hasattr(obj_in, 'dict'):
+            data = obj_in.dict(exclude_unset=True)
+        else:
+            data = dict(obj_in)
+        new_number = data.get('number', db_obj.number)
+        new_property_id = data.get('property_id', db_obj.property_id)
+        if (new_number != db_obj.number or new_property_id != db_obj.property_id):
+            existing = self.db.query(Room).filter(Room.property_id == new_property_id, Room.number == new_number, Room.id != id).first()
+            if existing:
+                raise ValueError(f"Room number '{new_number}' already exists for this property.")
+        for field, value in data.items():
             if hasattr(db_obj, field):
                 setattr(db_obj, field, value)
         self.db.commit()
