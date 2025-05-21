@@ -517,6 +517,28 @@ def test_update_task_all_fields():
     assert resp.json()["status"] == "DONE"
     assert resp.json()["assigned_to"] == 1
 
+def test_update_task_status_done_updates_room_status(monkeypatch):
+    # Mock the requests.patch to room service
+    called = {}
+    def mock_patch(url, json, timeout):
+        called['url'] = url
+        called['json'] = json
+        called['timeout'] = timeout
+        class Resp: pass
+        return Resp()
+    import backend.housekeeping_service.services.task_service as task_service_mod
+    monkeypatch.setattr(task_service_mod.requests, 'patch', mock_patch)
+
+    data = {"property_id": 1, "task_type": "HOUSEKEEPING", "room_id": 101}
+    post = client.post("/api/v1/tasks/", json=data)
+    task_id = post.json()["id"]
+    resp = client.patch(f"/api/v1/tasks/{task_id}", json={"status": "DONE"})
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "DONE"
+    # Check that the room service patch was called with correct params
+    assert called['url'].endswith("/rooms/101")
+    assert called['json'] == {"status": "CLEAN"}
+
 def test_delete_task():
     data = {
         "property_id": 1,

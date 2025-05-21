@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 import './App.css';
+import Dashboard from './Dashboard';
 
 // Static options for dropdowns
 const ROOM_STATUS_OPTIONS = ["AVAILABLE", "OCCUPIED", "MAINTENANCE", "CLEANING"];
@@ -54,6 +55,21 @@ function App() {
     price: '',
     payment_status: ''
   });
+
+  // Housekeeping Task state
+  const [showAddTask, setShowAddTask] = useState(false);
+  const [editTaskId, setEditTaskId] = useState(null);
+  const [editTask, setEditTask] = useState({});
+  const [newTask, setNewTask] = useState({
+    property_id: propertyId || 1,
+    task_type: 'HOUSEKEEPING',
+    room_id: '',
+    description: '',
+    assigned_to: '',
+    scheduled_time: ''
+  });
+
+  const [showDashboard, setShowDashboard] = useState(false);
 
   // API endpoints
   const ROOM_URL = 'http://localhost:8001/api/v1/room-service/rooms';
@@ -262,8 +278,85 @@ function App() {
     );
   };
 
+  const handleAddTaskChange = (e) => {
+    const { name, value } = e.target;
+    setNewTask((prev) => ({ ...prev, [name]: value }));
+  };
+  const handleAddTaskSubmit = async (e) => {
+    e.preventDefault();
+    setLoading('tasks'); setError('');
+    try {
+      // Convert empty strings to null and ensure correct types
+      const payload = {
+        ...newTask,
+        property_id: Number(newTask.property_id) || Number(propertyId) || 1,
+        room_id: newTask.room_id === '' ? null : Number(newTask.room_id),
+        assigned_to: newTask.assigned_to === '' ? null : Number(newTask.assigned_to),
+        scheduled_time: newTask.scheduled_time === '' ? null : newTask.scheduled_time,
+      };
+      await axios.post(TASK_URL, payload);
+      setShowAddTask(false);
+      setNewTask({
+        property_id: propertyId || 1,
+        task_type: 'HOUSEKEEPING',
+        room_id: '',
+        description: '',
+        assigned_to: '',
+        scheduled_time: ''
+      });
+      fetchTasks();
+    } catch (e) {
+      if (e.response && e.response.data && e.response.data.detail) {
+        setError('Failed to add task: ' + e.response.data.detail);
+      } else {
+        setError('Failed to add task');
+      }
+    } finally { setLoading(''); }
+  };
+  const handleEditTaskClick = (t) => {
+    setEditTaskId(t.id);
+    setEditTask({ ...t });
+  };
+  const handleEditTaskChange = (e) => {
+    const { name, value } = e.target;
+    setEditTask((prev) => ({ ...prev, [name]: value }));
+  };
+  const handleEditTaskSubmit = async (e) => {
+    e.preventDefault();
+    setLoading('tasks'); setError('');
+    try {
+      await axios.patch(`${TASK_URL}/${editTaskId}`, editTask);
+      setEditTaskId(null);
+      setEditTask({});
+      fetchTasks();
+    } catch (e) {
+      setError('Failed to update task');
+    } finally { setLoading(''); }
+  };
+  const handleDeleteTask = async (taskId) => {
+    if (!taskId) return;
+    if (!window.confirm('Are you sure you want to delete this task?')) return;
+    setLoading('tasks'); setError('');
+    try {
+      await axios.delete(`${TASK_URL}/${taskId}`);
+      fetchTasks();
+    } catch (e) {
+      setError('Failed to delete task');
+    } finally { setLoading(''); }
+  };
+
+  if (showDashboard) {
+    return (
+      <div className="container">
+        <button onClick={() => setShowDashboard(false)} style={{margin:'16px 0'}}>Back to Main App</button>
+        <Dashboard />
+      </div>
+    );
+  }
+
   return (
     <div className="container">
+      <button onClick={() => setShowDashboard(true)} style={{margin:'16px 0'}}>Go to Dashboard</button>
       <h1>Hotel Backend Integration Test</h1>
       <div className="form-section">
         <label>Property ID: <input value={propertyId} onChange={e => setPropertyId(e.target.value)} /></label>
@@ -421,22 +514,70 @@ function App() {
         {tasks && (
           <div className="card">
             <h2>Housekeeping Tasks</h2>
+            <button onClick={() => setShowAddTask(v => !v)} style={{marginBottom:8}}>{showAddTask ? 'Cancel' : 'Add Task'}</button>
+            {showAddTask && (
+              <form onSubmit={handleAddTaskSubmit} className="add-room-form">
+                <input name="property_id" placeholder="Property ID" value={newTask.property_id} onChange={handleAddTaskChange} required />
+                <select name="task_type" value={newTask.task_type} onChange={handleAddTaskChange}>
+                  <option value="HOUSEKEEPING">HOUSEKEEPING</option>
+                  <option value="MAINTENANCE">MAINTENANCE</option>
+                </select>
+                <input name="room_id" placeholder="Room ID" value={newTask.room_id} onChange={handleAddTaskChange} />
+                <input name="description" placeholder="Description" value={newTask.description} onChange={handleAddTaskChange} />
+                <input name="assigned_to" placeholder="Assigned To (Staff ID)" value={newTask.assigned_to} onChange={handleAddTaskChange} />
+                <input name="scheduled_time" type="datetime-local" placeholder="Scheduled Time" value={newTask.scheduled_time} onChange={handleAddTaskChange} />
+                <button type="submit">Add</button>
+              </form>
+            )}
             <table>
               <thead>
                 <tr>
-                  <th>ID</th><th>Room</th><th>Type</th><th>Status</th><th>Assigned</th><th>Scheduled</th><th>Description</th>
+                  <th>ID</th><th>Room</th><th>Type</th><th>Status</th><th>Assigned</th><th>Scheduled</th><th>Description</th><th>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {tasks.map(t => (
                   <tr key={t.id}>
-                    <td>{t.id}</td>
-                    <td>{t.room_id}</td>
-                    <td>{t.task_type}</td>
-                    <td>{t.status}</td>
-                    <td>{t.assigned_to}</td>
-                    <td>{t.scheduled_time ? t.scheduled_time.split('T')[0] : ''}</td>
-                    <td>{t.description}</td>
+                    {editTaskId === t.id ? (
+                      <>
+                        <td>{t.id}</td>
+                        <td><input name="room_id" value={editTask.room_id} onChange={handleEditTaskChange} /></td>
+                        <td>
+                          <select name="task_type" value={editTask.task_type} onChange={handleEditTaskChange}>
+                            <option value="HOUSEKEEPING">HOUSEKEEPING</option>
+                            <option value="MAINTENANCE">MAINTENANCE</option>
+                          </select>
+                        </td>
+                        <td>
+                          <select name="status" value={editTask.status} onChange={handleEditTaskChange}>
+                            <option value="PENDING">PENDING</option>
+                            <option value="IN_PROGRESS">IN_PROGRESS</option>
+                            <option value="DONE">DONE</option>
+                          </select>
+                        </td>
+                        <td><input name="assigned_to" value={editTask.assigned_to} onChange={handleEditTaskChange} /></td>
+                        <td><input name="scheduled_time" type="datetime-local" value={editTask.scheduled_time} onChange={handleEditTaskChange} /></td>
+                        <td><input name="description" value={editTask.description} onChange={handleEditTaskChange} /></td>
+                        <td>
+                          <button onClick={handleEditTaskSubmit}>Save</button>
+                          <button onClick={() => setEditTaskId(null)}>Cancel</button>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td>{t.id}</td>
+                        <td>{t.room_id}</td>
+                        <td>{t.task_type}</td>
+                        <td>{t.status}</td>
+                        <td>{t.assigned_to}</td>
+                        <td>{t.scheduled_time ? t.scheduled_time.split('T')[0] : ''}</td>
+                        <td>{t.description}</td>
+                        <td>
+                          <button onClick={() => handleEditTaskClick(t)}>Edit</button>
+                          <button onClick={() => handleDeleteTask(t.id)} style={{marginLeft:4, color:'red'}} disabled={!t.id}>Delete</button>
+                        </td>
+                      </>
+                    )}
                   </tr>
                 ))}
               </tbody>

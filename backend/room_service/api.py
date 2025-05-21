@@ -47,6 +47,13 @@ def create_room(data: RoomCreate, db: Session = Depends(get_db)):
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
 
+@router.get("/rooms/{room_id}", response_model=RoomRead)
+def get_room(room_id: int, db: Session = Depends(get_db)):
+    room = RoomService(db).repo.get(room_id)
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    return room
+
 @router.patch("/rooms/{room_id}", response_model=RoomRead)
 def update_room(room_id: int, update: RoomUpdate = Body(...), db: Session = Depends(get_db)):
     room = RoomService(db).repo.get(room_id)

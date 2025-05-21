@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.exception_handlers import RequestValidationError
+from fastapi.exceptions import RequestValidationError
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from backend.reservation_service.schemas import ReservationCreate, ReservationRead, ReservationUpdate
@@ -6,6 +8,7 @@ from backend.reservation_service.repository import ReservationRepository
 from backend.reservation_service.service import ReservationService
 from backend.room_service.service import RoomService
 from backend.reservation_service.config import SessionLocal
+from backend.reservation_service.exceptions import ReservationError, RoomUnavailableError
 
 router = APIRouter()
 
@@ -37,7 +40,7 @@ def create_reservation(reservation: ReservationCreate, service: ReservationServi
             room_id=reservation.room_id
         )
         return res
-    except Exception as e:
+    except (ReservationError, RoomUnavailableError) as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.patch("/reservations/{reservation_id}", response_model=ReservationRead)
